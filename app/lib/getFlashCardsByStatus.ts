@@ -2,33 +2,63 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 
-export async function getFlashCardsByStatus(status: "NOT_LEARNED" | "LEARNING" | "REVIEW" | "MASTERED") {
+export async function getFlashCardsByStatus(
+  status: "NOT_LEARNED" | "LEARNING" | "REVIEW" | "MASTERED"
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    // Nếu chưa đăng nhập thì không có userStatus → trả về rỗng
     return [];
   }
 
-  const userId = parseInt(session.user.id);
+  console.log(status)
 
-  const cards = await prisma.flashCard.findMany({
+  const userId = Number(session.user.id);
+
+  if (status === "NOT_LEARNED") {
+    // Lấy những flashcard mà KHÔNG có userStatus nào với userId
+    const cards = await prisma.flashCard.findMany({
+      where: {
+        userStatus: {
+          none: { userId },
+        },
+      },
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        chinese: true,
+        pinyin: true,
+        meaning: true,
+      },
+    });
+
+    return cards.map((card) => ({
+      ...card,
+      status: "NOT_LEARNED",
+    }));
+  }
+
+  // Các trạng thái khác thì query bình thường
+  const statuses = await prisma.userFlashcardStatus.findMany({
+    where: { userId, status },
+    orderBy: { updatedAt: "desc" },
     include: {
-      userStatus: {
-        where: { userId, status },
+      flashcard: {
+        select: {
+          id: true,
+          chinese: true,
+          pinyin: true,
+          meaning: true,
+        },
       },
     },
-    orderBy: { id: "asc" },
   });
 
-  // Chỉ giữ những card có trạng thái đúng
-  return cards
-    .filter(card => card.userStatus.length > 0)
-    .map(card => ({
-      id: card.id,
-      chinese: card.chinese,
-      pinyin: card.pinyin,
-      meaning: card.meaning,
-      status: status,
-    }));
+  return statuses.map((s) => ({
+    id: s.flashcard.id,
+    chinese: s.flashcard.chinese,
+    pinyin: s.flashcard.pinyin,
+    meaning: s.flashcard.meaning,
+    status: s.status as "NOT_LEARNED" | "LEARNING" | "REVIEW" | "MASTERED",
+  }));
 }
