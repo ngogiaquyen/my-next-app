@@ -1,18 +1,70 @@
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  // shadowDatabaseUrl chỉ cần khi dùng prisma migrate dev ở môi trường có shadow db
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+// 1. Bảng người dùng (bắt buộc nếu muốn mỗi user có tiến độ riêng)
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String?  @unique
+  email        String   @unique
+  passwordHash String
+  avatar       String?  // tùy chọn
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Quan hệ: một user có nhiều trạng thái flashcard
+  flashcardStatus UserFlashcardStatus[]
+
+  @@map("users")
+}
+
+// 2. Bảng flashcard công khai (giữ nguyên như cũ, chỉ đổi tên model cho chuẩn)
 model FlashCard {
   id        Int      @id @default(autoincrement())
-  chinese   String
-  pinyin    String
-  meaning   String
+  chinese   String   // ← bỏ @db.VarChar(100)
+  pinyin    String   // ← bỏ @db.VarChar(100)
+  meaning   String   // ← bỏ @db.VarChar(255) luôn cho đẹp
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userStatus UserFlashcardStatus[]
+
+  @@map("FlashCard")
+}
+
+// 3. Bảng trạng thái học tập riêng của từng user (bảng quan trọng nhất!)
+model UserFlashcardStatus {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  flashcardId     Int
+  status          FlashcardStatus @default(NOT_LEARNED) // chưa học
+  lastReviewedAt  DateTime? // lần cuối học/ôn
+  nextReviewDue   DateTime? // ngày cần ôn lại (dùng cho Spaced Repetition)
+  reviewCount     Int      @default(0)
+  easeFactor      Float    @default(2.5)   // cho thuật toán SM-2 (nếu muốn nâng cao)
+  interval        Int      @default(0)     // số ngày giữa các lần ôn
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Đảm bảo 1 user chỉ có 1 bản ghi cho 1 flashcard
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard   FlashCard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flashcardId])
+  @@map("user_flashcard_status")
+}
+
+// Enum trạng thái flashcard
+enum FlashcardStatus {
+  NOT_LEARNED   // chưa học
+  LEARNING      // đang học
+  REVIEW        // cần ôn lại
+  MASTERED      // đã thuộc lòng
 }

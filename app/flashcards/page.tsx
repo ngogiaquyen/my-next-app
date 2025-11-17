@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import FlashCard from '@/components/FlashCard';
+import FlashCard from '@/app/components/FlashCard';
 
 interface FlashCardItem {
   id: number;
@@ -45,7 +45,7 @@ export default function FlashcardsPage() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gray-100">
+    <main className="min-h-screen p-8">
       <h1 className="text-4xl font-bold mb-6 text-center">Quản lý Flash Card</h1>
       <div className="text-center mb-6">
         <Link href="/flashcards/new" className="bg-green-500 text-white px-4 py-2 rounded">
@@ -54,7 +54,7 @@ export default function FlashcardsPage() {
       </div>
       <div className="flex flex-wrap justify-center">
         {cards.map((card) => (
-          <div key={card.id} className="m-2 border p-4 rounded bg-white shadow">
+          <div key={card.id} className="m-2 border p-4 rounded shadow">
             <FlashCard chinese={card.chinese} pinyin={card.pinyin} meaning={card.meaning} />
             <div className="flex justify-between mt-2">
               <Link

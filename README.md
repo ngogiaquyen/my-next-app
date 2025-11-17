@@ -35,5 +35,12 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-lệnh tạo db và bảng
-npx prisma migrate dev --name init
+Copy toàn bộ đoạn trên thay thế file schema.prisma cũ
+Chạy lệnh migrate:bash
+
+npx prisma migrate dev --name add-user-and-progress-tables
+
+→ Prisma sẽ tự tạo 3 bảng mới: users, user_flashcard_status và giữ nguyên bảng FlashCard cũ (không mất dữ liệu 407 card hiện tại).
+
+Generate client mới:bash
+npx prisma generate
